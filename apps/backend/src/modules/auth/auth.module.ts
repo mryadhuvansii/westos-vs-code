@@ -8,6 +8,9 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { TwoFaController } from './controllers/2fa.controller';
+import { TwoFaService } from './services/2fa.service';
+import { TotpService } from './services/totp.service';
 
 import { User } from './entities/user.entity';
 import { UserProfile } from './entities/user-profile.entity';
@@ -16,6 +19,7 @@ import { UserDevice } from './entities/user-device.entity';
 import { OtpCode } from './entities/otp-code.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { UserSession } from './entities/user-session.entity';
+import { User2fa } from './entities/user-2fa.entity';
 
 @Module({
   imports: [
@@ -27,6 +31,7 @@ import { UserSession } from './entities/user-session.entity';
       OtpCode,
       PasswordResetToken,
       UserSession,
+      User2fa,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -40,8 +45,8 @@ import { UserSession } from './entities/user-session.entity';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
-  exports: [AuthService, JwtModule, JwtAuthGuard, JwtStrategy],
+  controllers: [AuthController, TwoFaController],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, TwoFaService, TotpService],
+  exports: [AuthService, JwtModule, JwtAuthGuard, JwtStrategy, TwoFaService],
 })
 export class AuthModule {}
