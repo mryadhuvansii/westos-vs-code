@@ -25,7 +25,7 @@ export const ordersApi = {
   createManualOrder: (data: any) => api.post('/orders', data),
   cancelOrder: (id: string, reason: string) => api.post(`/orders/${id}/cancel`, { reason }),
   requestReturn: (id: string, data: { items: { orderItemId: string; quantity: number; reason: string }[]; resolution: 'refund' | 'replacement' | 'store_credit' }) => api.post(`/orders/${id}/returns`, data),
-  getReturns: (orderId: string) => api.get(`/orders/${id}/returns`),
+  getReturns: (orderId: string) => api.get(`/orders/${orderId}/returns`),
   cancelReturn: (returnId: string) => api.delete(`/returns/${returnId}/cancel`),
 };
 

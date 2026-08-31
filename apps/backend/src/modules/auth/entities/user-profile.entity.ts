@@ -21,6 +21,9 @@ export class UserProfile {
   @Column({ name: 'marketing_consent', default: false })
   marketingConsent: boolean;
 
+  @Column({ length: 500, nullable: true })
+  avatar: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

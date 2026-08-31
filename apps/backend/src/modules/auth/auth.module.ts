@@ -7,10 +7,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { AppleStrategy } from './strategies/apple.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { TwoFaController } from './controllers/2fa.controller';
+import { SocialAuthController } from './controllers/social-auth.controller';
 import { TwoFaService } from './services/2fa.service';
 import { TotpService } from './services/totp.service';
+import { SocialAuthService } from './services/social-auth.service';
 
 import { User } from './entities/user.entity';
 import { UserProfile } from './entities/user-profile.entity';
@@ -45,8 +49,8 @@ import { User2fa } from './entities/user-2fa.entity';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, TwoFaController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, TwoFaService, TotpService],
-  exports: [AuthService, JwtModule, JwtAuthGuard, JwtStrategy, TwoFaService],
+  controllers: [AuthController, TwoFaController, SocialAuthController],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, AppleStrategy, JwtAuthGuard, TwoFaService, TotpService, SocialAuthService],
+  exports: [AuthService, JwtModule, JwtAuthGuard, JwtStrategy, TwoFaService, SocialAuthService],
 })
 export class AuthModule {}

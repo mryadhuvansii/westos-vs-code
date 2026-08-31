@@ -15,6 +15,9 @@ export class UserConsents {
   @Column({ name: 'marketing_whatsapp', default: false })
   marketingWhatsapp: boolean;
 
+  @Column({ name: 'marketing_push', default: false })
+  marketingPush: boolean;
+
   @Column({ name: 'analytics', default: false })
   analytics: boolean;
 
