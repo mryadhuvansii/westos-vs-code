@@ -1,0 +1,74 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: westos
+
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/backend-deployment.yaml
+  - ../../base/frontend-deployment.yaml
+  - ../../base/ingress.yaml
+  - ../../base/backend-configmap.yaml
+  - ../../base/frontend-configmap.yaml
+  - ../../base/secrets.yaml
+
+commonLabels:
+  environment: dev
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: westos-frontend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-backend-config-dev
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-frontend-config-dev
+    target:
+      kind: Deployment
+      name: westos-frontend
+
+configMapGenerator:
+  - name: westos-backend-config-dev
+    behavior: merge
+    literals:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=westos_dev
+      - DATABASE_SYNCHRONIZE=true
+      - DATABASE_LOGGING=true
+      - DATABASE_SSL=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=pretty
+  - name: westos-frontend-config-dev
+    behavior: merge
+    literals:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+images:
+  - name: westos/backend
+    newTag: dev
+  - name: westos/frontend
+    newTag: dev

@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "NodeNext",
+    "lib": ["ES2021"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "resolveJsonModule": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "@westos/shared": ["../../packages/shared/src"],
+      "@westos/config": ["../../packages/config/src"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/modules/pricing",
+    "src/modules/discounts",
+    "src/modules/coupons",
+    "src/modules/checkout",
+    "src/modules/refunds",
+    "src/modules/reviews",
+    "src/modules/wishlist",
+    "src/modules/cms",
+    "src/modules/notifications",
+    "src/modules/marketing",
+    "src/modules/analytics",
+    "src/modules/admin",
+    "src/modules/serialization",
+    "src/modules/media",
+    "src/modules/background-jobs",
+    "src/modules/shipping",
+    "src/modules/returns"
+  ]
+}

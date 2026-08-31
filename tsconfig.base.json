@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@westos/shared": ["packages/shared/src"],
+      "@westos/ui": ["packages/ui/src"],
+      "@westos/config": ["packages/config/src"],
+      "@westos/backend": ["apps/backend/src"],
+      "@westos/frontend": ["apps/frontend/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build"]
+}

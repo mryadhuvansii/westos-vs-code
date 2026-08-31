@@ -1,0 +1,75 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: westos
+
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/backend-deployment.yaml
+  - ../../base/frontend-deployment.yaml
+  - ../../base/ingress.yaml
+  - ../../base/backend-configmap.yaml
+  - ../../base/frontend-configmap.yaml
+  - ../../base/secrets.yaml
+
+commonLabels:
+  environment: prod
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+    target:
+      kind: Deployment
+      name: westos-frontend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-backend-config-prod
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-frontend-config-prod
+    target:
+      kind: Deployment
+      name: westos-frontend
+
+configMapGenerator:
+  - name: westos-backend-config-prod
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - DATABASE_HOST=postgres.westos.svc.cluster.local
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=westos
+      - DATABASE_SYNCHRONIZE=false
+      - DATABASE_LOGGING=false
+      - DATABASE_SSL=true
+      - REDIS_HOST=redis.westos.svc.cluster.local
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+  - name: westos-frontend-config-prod
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.westos.com
+      - NEXT_PUBLIC_APP_URL=https://www.westos.com
+      - NEXT_PUBLIC_CDN_URL=https://cdn.westos.com
+
+images:
+  - name: westos/backend
+    newTag: latest
+  - name: westos/frontend
+    newTag: latest

@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: westos-postgres
+    environment:
+      POSTGRES_USER: westos
+      POSTGRES_PASSWORD: westos_dev_password
+      POSTGRES_DB: westos_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U westos -d westos_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: westos-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: westos-flyway
+    command: -configFiles=/flyway/conf/flyway.conf migrate
+    volumes:
+      - F:\westos-platform\apps\backend\src\migrations:/flyway/sql
+      - ./flyway.conf:/flyway/conf/flyway.conf
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://postgres:5432/westos_dev
+      - FLYWAY_USER=westos
+      - FLYWAY_PASSWORD=westos_dev_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    container_name: westos-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - ../apps/frontend:/app/apps/frontend
+      - ../packages:/app/packages
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    container_name: westos-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=westos
+      - DATABASE_PASSWORD=westos_dev_password
+      - DATABASE_NAME=westos_dev
+      - DATABASE_SYNCHRONIZE=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - ADMIN_JWT_SECRET=your-admin-jwt-secret-change-in-production
+    volumes:
+      - ../apps/backend:/app/apps/backend
+      - ../packages:/app/packages
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  redis_data:

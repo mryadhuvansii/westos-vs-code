@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: westos-backend
+  namespace: westos
+  labels:
+    app: westos-backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: westos-backend
+  template:
+    metadata:
+      labels:
+        app: westos-backend
+        version: v1
+    spec:
+      containers:
+        - name: backend
+          image: westos/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: westos-backend-config
+            - secretRef:
+                name: westos-backend-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      serviceAccountName: westos-backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: westos-backend
+  namespace: westos
+  labels:
+    app: westos-backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  selector:
+    app: westos-backend

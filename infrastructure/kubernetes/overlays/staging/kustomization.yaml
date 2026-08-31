@@ -1,0 +1,74 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: westos
+
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/backend-deployment.yaml
+  - ../../base/frontend-deployment.yaml
+  - ../../base/ingress.yaml
+  - ../../base/backend-configmap.yaml
+  - ../../base/frontend-configmap.yaml
+  - ../../base/secrets.yaml
+
+commonLabels:
+  environment: staging
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: westos-frontend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-backend-config-staging
+    target:
+      kind: Deployment
+      name: westos-backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0/configMapRef/name
+        value: westos-frontend-config-staging
+    target:
+      kind: Deployment
+      name: westos-frontend
+
+configMapGenerator:
+  - name: westos-backend-config-staging
+    behavior: merge
+    literals:
+      - NODE_ENV=staging
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=westos_staging
+      - DATABASE_SYNCHRONIZE=false
+      - DATABASE_LOGGING=false
+      - DATABASE_SSL=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+  - name: westos-frontend-config-staging
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://staging-api.westos.com
+      - NEXT_PUBLIC_APP_URL=https://staging.westos.com
+
+images:
+  - name: westos/backend
+    newTag: staging
+  - name: westos/frontend
+    newTag: staging

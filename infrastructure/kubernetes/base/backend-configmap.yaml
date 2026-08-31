@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: westos-backend-config
+  namespace: westos
+data:
+  NODE_ENV: "production"
+  API_PREFIX: "api"
+  FRONTEND_URL: "https://www.westos.com"
+  DATABASE_HOST: "postgres.westos.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "westos"
+  DATABASE_SYNCHRONIZE: "false"
+  DATABASE_LOGGING: "false"
+  DATABASE_SSL: "true"
+  REDIS_HOST: "redis.westos.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  JWT_ISSUER: "westos"
+  JWT_AUDIENCE: "westos-api"
+  JWT_ACCESS_TOKEN_EXPIRES_IN: "15m"
+  JWT_REFRESH_TOKEN_EXPIRES_IN: "7d"
+  ADMIN_JWT_ACCESS_TOKEN_EXPIRES_IN: "15m"
+  ADMIN_JWT_REFRESH_TOKEN_EXPIRES_IN: "7d"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  FEATURE_BUYBACK_ENABLED: "false"
+  FEATURE_3D_VIEWER_ENABLED: "true"
+  FEATURE_ADVANCED_SEARCH_ENABLED: "false"
