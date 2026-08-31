@@ -1,0 +1,316 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20.x'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  # ============================================
+  # LINT & TYPE CHECK
+  # ============================================
+  lint-and-typecheck:
+    name: Lint & TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./apps/backend
+
+      - name: Run ESLint (backend)
+        run: npm run lint
+        working-directory: ./apps/backend
+
+      - name: Run TypeScript check (backend)
+        run: npx tsc --noEmit
+        working-directory: ./apps/backend
+- name: Install dependencies (frontend)
+        run: npm ci
+        working-directory: ./apps/frontend
+
+      - name: Run ESLint (frontend)
+        run: npm run lint
+        working-directory: ./apps/frontend
+
+      - name: Run TypeScript check (frontend)
+        run: npx tsc --noEmit
+        working-directory: ./apps/frontend
+
+      - name: Install dependencies (shared packages)
+        run: npm ci
+        working-directory: ./packages/shared
+
+      - name: Run TypeScript check (shared)
+        run: npx tsc --noEmit
+        working-directory: ./packages/shared
+
+  # ============================================
+  # UNIT TESTS
+  # ============================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: westos
+          POSTGRES_PASSWORD: westos_dev_password
+          POSTGRES_DB: westos_dev
+        ports: 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        ports: 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: ./apps/backend
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U westos; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Wait for Redis
+        run: |
+          for i in {1..10}; do
+            if redis-cli -h localhost -p 6379 ping; then
+              echo "Redis is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run database migrations
+        run: npm run migration:run
+        working-directory: ./apps/backend
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: westos
+          DATABASE_PASSWORD: westos_dev_password
+          DATABASE_NAME: westos_dev
+
+      - name: Run unit tests (backend)
+# ============================================
+  # INTEGRATION TESTS
+  # ============================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: westos
+          POSTGRES_PASSWORD: westos_dev_password
+          POSTGRES_DB: westos_dev
+        ports: 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        ports: 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: ./apps/backend
+
+      - name: Wait for services
+        run: |
+          sleep 10
+
+      - name: Run integration tests (backend)
+        run: npm run test:e2e --if-present
+        working-directory: ./apps/backend
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: westos
+          DATABASE_PASSWORD: westos_dev_password
+          DATABASE_NAME: westos_dev
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret
+          JWT_ACCESS_TOKEN_EXPIRES_IN: 15m
+          JWT_REFRESH_TOKEN_EXPIRES_IN: 7d
+
+  # ============================================
+  # BUILD DOCKER IMAGES
+  # ============================================
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests]
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./infrastructure/docker/Dockerfile.backend
+          push: false
+          tags: westos-backend:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./infrastructure/docker/Dockerfile.frontend
+          push: false
+          tags: westos-frontend:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # SECURITY SCAN
+  # ============================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # ============================================
+  # DEPLOY TO STAGING
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests, integration-tests, build-docker, security-scan]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging (ArgoCD)
+        run: |
+          echo "Triggering ArgoCD sync for staging..."
+          # argocd app sync westos-staging --server ${{ secrets.ARGOCD_SERVER }} --auth-token ${{ secrets.ARGOCD_TOKEN }}
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+
+  # ============================================
+  # DEPLOY TO PRODUCTION
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests, integration-tests, build-docker, security-scan]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production (ArgoCD)
+        run: |
+          echo "Triggering ArgoCD sync for production..."
+          # argocd app sync westos-production --server ${{ secrets.ARGOCD_SERVER }} --auth-token ${{ secrets.ARGOCD_TOKEN }}
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: npm run test
+        working-directory: ./apps/backend
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: westos
+          DATABASE_PASSWORD: westos_dev_password
+          DATABASE_NAME: westos_dev
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret
+          JWT_ACCESS_TOKEN_EXPIRES_IN: 15m
+          JWT_REFRESH_TOKEN_EXPIRES_IN: 7d
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./apps/frontend
+
+      - name: Run unit tests (frontend)
+        run: npm run test --if-present
+        working-directory: ./apps/frontend
