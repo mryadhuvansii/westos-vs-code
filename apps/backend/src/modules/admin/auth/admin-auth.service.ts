@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminUser } from './entities/admin-user.entity';
 import { Admin2fa } from './entities/admin-2fa.entity';
 import { AdminSession } from './entities/admin-session.entity';
+import { authenticator } from 'otplib';
 
 @Injectable()
 export class AdminAuthService {
@@ -28,8 +29,19 @@ export class AdminAuthService {
     this.jwtSecret = this.configService.get<string>('ADMIN_JWT_SECRET') || 'admin-secret';
     this.jwtAccessExpiry = this.configService.get<string>('ADMIN_JWT_ACCESS_TOKEN_EXPIRES_IN') || '15m';
     this.jwtRefreshExpiry = this.configService.get<string>('ADMIN_JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d';
+    
+    authenticator.options = { step: 30, window: 1 };
   }
-async login(email: string, password: string, twoFactorCode?: string): Promise<{ accessToken: string; refreshToken: string }> {
+
+  async validateAdmin(adminId: string): Promise<AdminUser | null> {
+    const admin = await this.adminUserRepository.findOne({
+      where: { id: adminId },
+      relations: ['twofa'],
+    });
+    return admin;
+  }
+
+  async login(email: string, password: string, twoFactorCode?: string): Promise<{ accessToken: string; refreshToken: string }> {
     const admin = await this.adminUserRepository.findOne({
       where: { email },
       relations: ['twofa'],
@@ -94,9 +106,9 @@ async login(email: string, password: string, twoFactorCode?: string): Promise<{ 
 
     return this.generateTokens(session.adminUserId, session.adminUser.isSuperAdmin);
   }
-
-  async enable2fa(adminId: string): Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] }> {
-    const secret = crypto.randomBytes(20).toString('base32');
+ 
+async enable2fa(adminId: string): Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] }> {
+    const secret = authenticator.generateSecret();
     const backupCodes = Array.from({ length: 10 }, () => 
       crypto.randomBytes(4).toString('hex').toUpperCase()
     );
@@ -110,7 +122,7 @@ async login(email: string, password: string, twoFactorCode?: string): Promise<{ 
     twofa.enabled = true;
     await this.admin2faRepository.save(twofa);
 
-    const qrCodeUrl = `otpauth://totp/Westos Admin:${adminId}?secret=${secret}&issuer=Westos`;
+    const qrCodeUrl = 'otpauth://totp/Westos Admin:' + adminId + '?secret=' + secret + '&issuer=Westos';
 
     return { secret, qrCodeUrl, backupCodes };
   }
@@ -132,16 +144,33 @@ async login(email: string, password: string, twoFactorCode?: string): Promise<{ 
     await this.admin2faRepository.save(twofa);
   }
 
+  async verify2fa(adminId: string, code: string): Promise<boolean> {
+    const twofa = await this.admin2faRepository.findOne({ where: { adminUserId: adminId } });
+    if (!twofa || !twofa.enabled) return false;
+
+    // Check backup codes
+    const backupCodeIndex = twofa.backupCodes?.indexOf(code.toUpperCase());
+    if (backupCodeIndex !== undefined && backupCodeIndex >= 0) {
+      twofa.backupCodes.splice(backupCodeIndex, 1);
+      await this.admin2faRepository.save(twofa);
+      return true;
+    }
+
+    // Check TOTP
+    const isValid = authenticator.check(code, twofa.secret);
+    return isValid;
+  }
+
   private async generateTokens(adminId: string, isSuperAdmin: boolean): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: adminId, isSuperAdmin };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.jwtSecret,
-      expiresIn: this.jwtAccessExpiry,
+      expiresIn: this.jwtAccessExpiry as any,
     });
 
     const refreshToken = this.jwtService.sign(
       { sub: adminId, type: 'refresh' },
-      { secret: this.jwtSecret, expiresIn: this.jwtRefreshExpiry }
+      { secret: this.jwtSecret, expiresIn: this.jwtRefreshExpiry as any }
     );
 
     const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
@@ -162,19 +191,5 @@ async login(email: string, password: string, twoFactorCode?: string): Promise<{ 
       admin.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
     }
     await this.adminUserRepository.save(admin);
-  }
-
-  private async verify2fa(adminId: string, code: string): Promise<boolean> {
-    const twofa = await this.admin2faRepository.findOne({ where: { adminUserId: adminId } });
-    if (!twofa || !twofa.enabled) return false;
-
-    const backupCodeIndex = twofa.backupCodes?.indexOf(code.toUpperCase());
-    if (backupCodeIndex !== undefined && backupCodeIndex >= 0) {
-      twofa.backupCodes.splice(backupCodeIndex, 1);
-      await this.admin2faRepository.save(twofa);
-      return true;
-    }
-
-    return false;
   }
 }

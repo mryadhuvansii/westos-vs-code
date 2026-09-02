@@ -6,7 +6,7 @@ import { Permission } from './entities/permission.entity';
 import { AdminRoleAssignment } from './entities/admin-role-assignment.entity';
 import { CreateRoleDto, UpdateRoleDto, AssignRoleDto, BulkAssignRolesDto } from './dto/rbac.dto';
 import { AdminUser } from '../auth/entities/admin-user.entity';
-import { AdminAuthService } from '../auth/admin-auth.service';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Injectable()
 export class RbacService {
@@ -19,8 +19,8 @@ export class RbacService {
     private roleAssignmentRepository: Repository<AdminRoleAssignment>,
     @InjectRepository(AdminUser)
     private adminUserRepository: Repository<AdminUser>,
-    @Inject(forwardRef(() => AdminAuthService))
-    private adminAuthService: any,
+    @Inject(forwardRef(() => AdminAuthModule))
+    private adminAuthModule: AdminAuthModule,
   ) {}
 
   async createRole(dto: CreateRoleDto): Promise<Role> {

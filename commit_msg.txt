@@ -1,0 +1,10 @@
+feat: initial commit - Westos platform foundation
+
+- NestJS backend with 7 core modules (auth, cart, products, catalogue, inventory, orders, health)
+- Next.js 14 frontend with App Router
+- Shared packages (types, UI, config)
+- PostgreSQL + Flyway migrations (9 versions)
+- Docker Compose + Kubernetes + Terraform
+- JWT auth, cart, products, inventory, orders
+- Health checks, Swagger docs
+- Implementation plan documentation

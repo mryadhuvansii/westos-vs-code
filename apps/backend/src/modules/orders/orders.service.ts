@@ -1,12 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Order } from './entities/order.entity';
+import { OrderItem } from './entities/order-item.entity';
+import { OrderStatusHistory } from './entities/order-status-history.entity';
+import { OrderNote } from './entities/order-note.entity';
+import { OrderHold } from './entities/order-hold.entity';
 import { Invoice } from './entities/invoice.entity';
 import { CreditNote } from './entities/credit-note.entity';
 
 @Injectable()
 export class OrdersService {
   constructor(
+    @InjectRepository(Order)
+    private orderRepository: Repository<Order>,
+    @InjectRepository(OrderItem)
+    private orderItemRepository: Repository<OrderItem>,
+    @InjectRepository(OrderStatusHistory)
+    private orderStatusHistoryRepository: Repository<OrderStatusHistory>,
+    @InjectRepository(OrderNote)
+    private orderNoteRepository: Repository<OrderNote>,
+    @InjectRepository(OrderHold)
+    private orderHoldRepository: Repository<OrderHold>,
     @InjectRepository(Invoice)
     private invoiceRepository: Repository<Invoice>,
     @InjectRepository(CreditNote)

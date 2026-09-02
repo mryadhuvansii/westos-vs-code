@@ -3,6 +3,7 @@ import { Exclude } from 'class-transformer';
 import { UserProfile } from './user-profile.entity';
 import { UserConsents } from './user-consents.entity';
 import { UserDevice } from './user-device.entity';
+import { Address } from '../../customers/entities/address.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true })
@@ -50,15 +51,14 @@ export class User {
   deletedAt: Date;
 
   @OneToOne(() => UserProfile, (profile) => profile.user, { cascade: true })
-  @JoinColumn({ name: 'id' })
   profile: UserProfile;
 
   @OneToOne(() => UserConsents, (consents) => consents.user, { cascade: true })
-  @JoinColumn({ name: 'id' })
   consents: UserConsents;
 
   @OneToMany(() => UserDevice, (device) => device.user)
   devices: UserDevice[];
 
-  addresses?: any[];
+  @OneToMany(() => Address, (address) => address.user)
+  addresses: Address[];
 }

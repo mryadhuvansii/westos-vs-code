@@ -154,4 +154,16 @@ export class AuthController {
   async socialLogin(@Body() dto: SocialLoginDto) {
     return this.authService.socialLogin(dto);
   }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getProfile(@Req() req: Request) {
+    const userId = (req.user as any)?.sub || (req.user as any)?.id;
+    return this.authService.getProfile(userId);
+  }
 }

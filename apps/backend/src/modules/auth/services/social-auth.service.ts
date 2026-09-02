@@ -179,8 +179,8 @@ async loginWithSocial(dto: SocialLoginDto): Promise<SocialLoginResponseDto> {
       ? this.configService.get<string>('ADMIN_JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d'
       : this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d';
 
-    const accessToken = this.jwtService.sign(payload, { secret, expiresIn: accessExpiry });
-    const refreshToken = this.jwtService.sign(payload, { secret, expiresIn: refreshExpiry });
+    const accessToken = this.jwtService.sign(payload, { secret, expiresIn: accessExpiry as any });
+    const refreshToken = this.jwtService.sign(payload, { secret, expiresIn: refreshExpiry as any });
 
     const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const expiresAt = new Date(Date.now() + this.parseExpiry(refreshExpiry));

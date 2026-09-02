@@ -1,0 +1,15 @@
+feat: implement 2FA/TOTP authentication (Phase 2.1)
+
+- Add User2fa entity for storing TOTP secrets and backup codes
+- Add TotpService for TOTP generation, verification, QR codes, and backup codes
+- Add TwoFaService for 2FA business logic (enable, confirm, disable, verify, regenerate)
+- Add TwoFaController with REST endpoints:
+  - GET /auth/2fa/status - Get 2FA status
+  - POST /auth/2fa/enable - Initiate 2FA setup (returns secret + QR code)
+  - POST /auth/2fa/confirm - Confirm 2FA with TOTP code
+  - POST /auth/2fa/disable - Disable 2FA with password
+  - POST /auth/2fa/verify - Verify TOTP or backup code
+  - POST /auth/2fa/backup-codes/regenerate - Regenerate backup codes
+- Add 2FA DTOs with Swagger documentation
+- Update AuthModule to include User2fa entity and new services
+- Install otplib and qrcode dependencies

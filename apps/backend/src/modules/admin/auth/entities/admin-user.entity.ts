@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToOne, JoinColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { Admin2fa } from './admin-2fa.entity';
 
 @Entity('admin_users')
 @Index(['email'], { unique: true })
@@ -39,7 +40,7 @@ export class AdminUser {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToOne(() => 'Admin2fa', (twofa) => twofa.adminUser, { cascade: true })
+  @OneToOne(() => Admin2fa, (twofa) => twofa.adminUser, { cascade: true })
   @JoinColumn({ name: 'id' })
-  twofa: any;
+  twofa: Admin2fa;
 }

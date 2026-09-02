@@ -1,5 +1,13 @@
 import { api } from './api-core';
 
+export const productsApi = {
+  getProducts: (params?: { page?: number; limit?: number; category?: string; brand?: string; sort?: string; order?: string; minPrice?: number; maxPrice?: number; search?: string }) => 
+    api.get('/products', { params }),
+  getProduct: (slug: string) => api.get(`/products/${slug}`),
+  getVariants: (id: string) => api.get(`/products/${id}/variants`),
+  getMedia: (id: string) => api.get(`/products/${id}/media`),
+};
+
 export const cartApi = {
   getCart: () => api.get('/cart'),
   addItem: (variantId: string, quantity: number) => api.post('/cart/items', { variantId, quantity }),

@@ -7,10 +7,10 @@ import { AdminAuthService } from '../auth/admin-auth.service';
 export class PermissionsGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    @Inject('AdminAuthService') private adminAuthService: any,
+    @Inject('AdminAuthService') private adminAuthService: AdminAuthService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       'permissions',
       [context.getHandler(), context.getClass()],

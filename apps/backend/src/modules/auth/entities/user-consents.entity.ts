@@ -3,7 +3,7 @@ import { User } from './user.entity';
 
 @Entity('user_consents')
 export class UserConsents {
-  @PrimaryColumn('uuid')
+  @PrimaryColumn('uuid', { name: 'user_id' })
   userId: string;
 
   @Column({ name: 'marketing_email', default: false })

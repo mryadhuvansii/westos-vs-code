@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { AdminUser } from './admin-user.entity';
 
 @Entity('admin_sessions')
 @Index(['adminUserId'])
@@ -28,7 +29,7 @@ export class AdminSession {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => 'AdminUser', { onDelete: 'CASCADE' })
+  @ManyToOne(() => AdminUser, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'admin_user_id' })
-  adminUser: any;
+  adminUser: AdminUser;
 }

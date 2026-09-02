@@ -316,16 +316,19 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret,
-      expiresIn: accessExpiry,
+      expiresIn: accessExpiry as any,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret,
-      expiresIn: refreshExpiry,
+      expiresIn: refreshExpiry as any,
     });
 
     const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const expiresAt = new Date(Date.now() + this.parseExpiry(refreshExpiry));
+
+    // Delete any existing sessions for this user to avoid duplicate key conflicts
+    await this.sessionRepository.delete({ userId });
 
     await this.sessionRepository.save({
       userId: this.getUserIdFromPayload(payload),
@@ -371,5 +374,18 @@ export class AuthService {
 
   private getUserIdFromPayload(payload: JwtPayload): string {
     return payload.sub;
+  }
+
+  async getProfile(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['profile', 'consents'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }

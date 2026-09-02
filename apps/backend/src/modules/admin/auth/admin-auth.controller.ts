@@ -10,8 +10,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminAuthService } from './admin-auth.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { Request } from 'express';
+import { AdminUser } from './entities/admin-user.entity';
 
 @ApiTags('Admin Authentication')
 @Controller('admin/auth')
@@ -32,11 +33,11 @@ export class AdminAuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminJwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin logout' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  async logout(@Req() req: Request, @Body('refreshToken') refreshToken: string) {
+  async logout(@Req() req: Request & { user: AdminUser }, @Body('refreshToken') refreshToken: string) {
     await this.adminAuthService.logout(req.user.id, refreshToken);
     return { message: 'Logged out successfully' };
   }
@@ -51,23 +52,23 @@ export class AdminAuthController {
   }
 
   @Post('2fa/enable')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminJwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Enable 2FA' })
   @ApiResponse({ status: 200, description: '2FA enabled' })
   @ApiResponse({ status: 400, description: '2FA not implemented' })
-  async enable2fa(@Req() req: Request) {
+  async enable2fa(@Req() req: Request & { user: AdminUser }) {
     return this.adminAuthService.enable2fa(req.user.id);
   }
 
   @Post('2fa/disable')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminJwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disable 2FA' })
   @ApiResponse({ status: 200, description: '2FA disabled' })
   @ApiResponse({ status: 400, description: 'Invalid code' })
-  async disable2fa(@Req() req: Request, @Body('code') code: string) {
+  async disable2fa(@Req() req: Request & { user: AdminUser }, @Body('code') code: string) {
     await this.adminAuthService.disable2fa(req.user.id, code);
     return { message: '2FA disabled successfully' };
   }

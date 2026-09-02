@@ -1,0 +1,23 @@
+feat: implement Phase 2.2 Social Login (Google, Apple) + fixes
+
+- Add SocialProvider enum (GOOGLE, APPLE) to social-login.dto.ts
+- Add SocialAuthController with endpoints:
+  - POST /auth/social/login - Login with social provider
+  - GET /auth/social/google - Google OAuth URL
+  - GET /auth/social/apple - Apple OAuth URL
+- Add SocialAuthService with validateOrCreateUser, loginWithSocial, fetchGoogleUserInfo, extractAppleSub/Email, generateTokens
+- Add GoogleStrategy and AppleStrategy with Passport
+- Add SocialAuthService to AuthModule with strategies
+- Fix UserProfile entity: add avatar field
+- Fix UserConsents entity: add marketingPush field
+- Fix SocialProvider enum in strategies to use enum values
+- Fix apple strategy done() callback to use null instead of false
+- Fix frontend endpoints-shop.ts getReturns to use orderId parameter
+- Fix frontend tsconfig.json to add baseUrl: '.' for path resolution
+- Add 2FA/TOTP implementation (Phase 2.1):
+  - User2fa entity
+  - TotpService for TOTP generation, verification, QR codes, backup codes
+  - TwoFaService for 2FA business logic (enable, confirm, disable, verify, regenerate)
+  - TwoFaController with endpoints: GET /auth/2fa/status, POST /auth/2fa/enable, POST /auth/2fa/confirm, POST /auth/2fa/disable, POST /auth/2fa/verify, POST /auth/2fa/backup-codes/regenerate
+  - 2FA DTOs with Swagger documentation
+  - Install otplib, qrcode dependencies

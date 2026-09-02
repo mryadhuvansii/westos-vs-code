@@ -22,8 +22,11 @@ async function bootstrap() {
   });
 
   // CORS
+  const frontendUrl = configService.get('FRONTEND_URL', 'http://localhost:3000');
+  const allowedOrigins = frontendUrl.split(',').map((url: string) => url.trim());
+  
   app.enableCors({
-    origin: configService.get('FRONTEND_URL', 'http://localhost:3000'),
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'Idempotency-Key'],
@@ -68,8 +71,8 @@ async function bootstrap() {
       .addTag('admin', 'Admin Operations')
       .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document, {
+    const document = SwaggerModule.createDocument(app as any, config);
+    SwaggerModule.setup('docs', app as any, document, {
       swaggerOptions: { persistAuthorization: true },
     });
   }

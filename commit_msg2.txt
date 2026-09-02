@@ -1,0 +1,9 @@
+ci: add GitHub Actions CI pipeline
+
+- Lint & TypeCheck for backend, frontend, shared packages
+- Unit tests with PostgreSQL and Redis services
+- Integration tests
+- Docker image building with Buildx and caching
+- Security scanning (npm audit, Snyk)
+- Staging deployment on develop branch
+- Production deployment on version tags

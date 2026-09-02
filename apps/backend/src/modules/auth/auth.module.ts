@@ -7,8 +7,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { GoogleStrategy } from './strategies/google.strategy';
-import { AppleStrategy } from './strategies/apple.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { TwoFaController } from './controllers/2fa.controller';
 import { SocialAuthController } from './controllers/social-auth.controller';
@@ -24,6 +22,7 @@ import { OtpCode } from './entities/otp-code.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { UserSession } from './entities/user-session.entity';
 import { User2fa } from './entities/user-2fa.entity';
+import { AdminAuthModule } from '../admin/auth/admin-auth.module';
 
 @Module({
   imports: [
@@ -43,14 +42,50 @@ import { User2fa } from './entities/user-2fa.entity';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') || 'default-secret',
         signOptions: {
-          expiresIn: configService.get<string>('JWT_ACCESS_TOKEN_EXPIRES_IN') || '15m',
+          expiresIn: (configService.get<string>('JWT_ACCESS_TOKEN_EXPIRES_IN') || '15m') as any,
         },
       }),
       inject: [ConfigService],
     }),
+    forwardRef(() => AdminAuthModule),
   ],
   controllers: [AuthController, TwoFaController, SocialAuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, AppleStrategy, JwtAuthGuard, TwoFaService, TotpService, SocialAuthService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtAuthGuard,
+    TwoFaService,
+    TotpService,
+    SocialAuthService,
+    {
+      provide: 'GOOGLE_STRATEGY',
+      useFactory: (configService: ConfigService) => {
+        const clientId = configService.get<string>('GOOGLE_CLIENT_ID');
+        const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
+        if (clientId && clientSecret) {
+          const { GoogleStrategy } = require('./strategies/google.strategy');
+          return new GoogleStrategy(configService);
+        }
+        return null;
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: 'APPLE_STRATEGY',
+      useFactory: (configService: ConfigService) => {
+        const clientId = configService.get<string>('APPLE_CLIENT_ID');
+        const teamId = configService.get<string>('APPLE_TEAM_ID');
+        const keyId = configService.get<string>('APPLE_KEY_ID');
+        const privateKey = configService.get<string>('APPLE_PRIVATE_KEY');
+        if (clientId && teamId && keyId && privateKey) {
+          const { AppleStrategy } = require('./strategies/apple.strategy');
+          return new AppleStrategy(configService);
+        }
+        return null;
+      },
+      inject: [ConfigService],
+    },
+  ],
   exports: [AuthService, JwtModule, JwtAuthGuard, JwtStrategy, TwoFaService, SocialAuthService],
 })
 export class AuthModule {}

@@ -1,8 +1,49 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { FeatureCard, CategoryCard, TruckIcon, ShieldIcon, RotateIcon } from '@/components/home';
+import { productsApi } from '@/lib/endpoints-shop';
 
-export default function HomePage() {
+async function getFeaturedProducts() {
+  try {
+    const response = await productsApi.getProducts({ limit: 8, sort: 'createdAt', order: 'DESC' });
+    return response.data.data?.data || [];
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    return [];
+  }
+}
+
+async function getCategories() {
+  try {
+    const response = await productsApi.getProducts({ limit: 50 });
+    const products = response.data.data?.data || [];
+    
+    // Group by category from products
+    const categoryMap = new Map();
+    products.forEach((p: any) => {
+      const category = p.category?.name || 'Other';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, {
+          title: category,
+          description: `${products.filter((x: any) => x.category?.name === category).length} products`,
+          imageUrl: p.images?.[0]?.url || '/images/categories/default.jpg',
+          href: `/products?category=${category.toLowerCase().replace(/\s+/g, '-')}`
+        });
+      }
+    });
+    
+    return Array.from(categoryMap.values()).slice(0, 4);
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const [products, categories] = await Promise.all([
+    getFeaturedProducts(),
+    getCategories()
+  ]);
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
@@ -71,46 +112,136 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Categories */}
-      <section className="py-20 bg-secondary-50 dark:bg-secondary-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-display font-bold text-secondary-900 dark:text-white mb-4">
-              Shop by Category
-            </h2>
-            <p className="text-secondary-600 dark:text-secondary-300 max-w-2xl mx-auto">
-              Discover our curated collection of premium jeans and fashion essentials.
-            </p>
+      {/* Featured Products from API */}
+      {products.length > 0 && (
+        <section className="py-20 bg-white dark:bg-secondary-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-display font-bold text-secondary-900 dark:text-white mb-4">
+                  New Arrivals
+                </h2>
+                <p className="text-secondary-600 dark:text-secondary-300 max-w-2xl mx-auto">
+                  Discover our latest collection of premium jeans and fashion essentials.
+                </p>
+              </div>
+              <Link
+                href="/products"
+                className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/30 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+              >
+                View All
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.slice(0, 4).map((product: any) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group relative aspect-[3/4] rounded-xl overflow-hidden bg-secondary-100 dark:bg-secondary-800"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-10" />
+                  <div className="absolute inset-0 z-0">
+                    <Image
+                      src={product.images?.[0]?.url || '/images/categories/default.jpg'}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                    <h3 className="text-xl font-semibold text-white mb-1">{product.name}</h3>
+                    <p className="text-white/80 text-sm">{product.category?.name || 'Products'}</p>
+                  </div>
+                  <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="bg-white text-primary-600 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1">
+                      View Details
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <CategoryCard
-              title="Men's Jeans"
-              description="Slim, Straight, Relaxed, Baggy fits"
-              imageUrl="/images/categories/mens-jeans.jpg"
-              href="/products?category=mens-jeans"
-            />
-            <CategoryCard
-              title="Men's Cargos"
-              description="Utility, Tactical, Slim fits"
-              imageUrl="/images/categories/mens-cargos.jpg"
-              href="/products?category=mens-cargos"
-            />
-            <CategoryCard
-              title="Women's Jeans"
-              description="Skinny, Straight, Mom, Wide leg"
-              imageUrl="/images/categories/womens-jeans.jpg"
-              href="/products?category=womens-jeans"
-            />
-            <CategoryCard
-              title="Accessories"
-              description="Belts, Wallets, Caps & more"
-              imageUrl="/images/categories/accessories.jpg"
-              href="/products?category=accessories"
-            />
+        </section>
+      )}
+
+      {/* Featured Categories from API */}
+      {categories.length > 0 && (
+        <section className="py-20 bg-secondary-50 dark:bg-secondary-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-display font-bold text-secondary-900 dark:text-white mb-4">
+                Shop by Category
+              </h2>
+              <p className="text-secondary-600 dark:text-secondary-300 max-w-2xl mx-auto">
+                Discover our curated collection of premium jeans and fashion essentials.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {categories.map((cat: any, idx: number) => (
+                <CategoryCard
+                  key={cat.title + idx}
+                  title={cat.title}
+                  description={cat.description}
+                  imageUrl={cat.imageUrl}
+                  href={cat.href}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Fallback static categories if no API data */}
+      {categories.length === 0 && (
+        <section className="py-20 bg-secondary-50 dark:bg-secondary-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-display font-bold text-secondary-900 dark:text-white mb-4">
+                Shop by Category
+              </h2>
+              <p className="text-secondary-600 dark:text-secondary-300 max-w-2xl mx-auto">
+                Discover our curated collection of premium jeans and fashion essentials.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <CategoryCard
+                title="Men's Jeans"
+                description="Slim, Straight, Relaxed, Baggy fits"
+                imageUrl="/images/categories/mens-jeans.jpg"
+                href="/products?category=mens-jeans"
+              />
+              <CategoryCard
+                title="Men's Cargos"
+                description="Utility, Tactical, Slim fits"
+                imageUrl="/images/categories/mens-cargos.jpg"
+                href="/products?category=mens-cargos"
+              />
+              <CategoryCard
+                title="Women's Jeans"
+                description="Skinny, Straight, Mom, Wide leg"
+                imageUrl="/images/categories/womens-jeans.jpg"
+                href="/products?category=womens-jeans"
+              />
+              <CategoryCard
+                title="Accessories"
+                description="Belts, Wallets, Caps & more"
+                imageUrl="/images/categories/accessories.jpg"
+                href="/products?category=accessories"
+              />
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
