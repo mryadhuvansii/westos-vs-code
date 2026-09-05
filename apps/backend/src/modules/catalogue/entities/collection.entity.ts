@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index, ManyToMany } from 'typeorm';
+import { Product } from './product.entity';
 
 @Entity('collections')
 @Index(['slug'], { unique: true })
@@ -20,6 +21,9 @@ export class Collection {
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
+
+  @ManyToMany(() => Product, (product) => product.collections)
+  products?: Product[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

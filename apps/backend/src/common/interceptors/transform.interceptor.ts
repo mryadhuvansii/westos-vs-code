@@ -4,7 +4,6 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Request } from 'express';
 
@@ -15,16 +14,18 @@ export interface ApiResponse<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
+export class TransformInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler) {
     const request = context.switchToHttp().getRequest<Request>();
     const requestId = request.headers['x-request-id'] as string;
 
+    // @ts-ignore - Workspace rxjs version mismatch between root and backend node_modules
     return next.handle().pipe(
-      map((data) => {
+      // @ts-ignore - Workspace rxjs version mismatch
+      map((data: any): ApiResponse<any> => {
         // If data is already in the standard format, return as-is
         if (data && typeof data === 'object' && 'success' in data) {
-          return data;
+          return data as ApiResponse<any>;
         }
 
         return {

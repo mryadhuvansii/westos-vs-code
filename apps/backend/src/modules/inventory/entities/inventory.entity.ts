@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { ProductVariant } from '../../catalogue/entities/product-variant.entity';
+import { WarehouseLocation } from './warehouse-location.entity';
 
 @Entity('inventories')
 @Index(['warehouseId'])
@@ -10,6 +11,9 @@ export class Inventory {
 
   @Column({ type: 'uuid' })
   warehouseId: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  locationId: string;
 
   @Column({ type: 'uuid' })
   variantId: string;
@@ -36,7 +40,9 @@ export class Inventory {
   @JoinColumn({ name: 'variantId' })
   variant: ProductVariant;
 
-  location?: any;
+  @ManyToOne(() => WarehouseLocation, (location) => location.inventory)
+  @JoinColumn({ name: 'locationId' })
+  location: WarehouseLocation;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
