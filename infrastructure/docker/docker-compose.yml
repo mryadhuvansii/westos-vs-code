@@ -34,7 +34,7 @@ services:
     container_name: westos-flyway
     command: -configFiles=/flyway/conf/flyway.conf migrate
     volumes:
-      - F:\westos-platform\apps\backend\src\migrations:/flyway/sql
+      - ../../apps/backend/src/migrations:/flyway/sql
       - ./flyway.conf:/flyway/conf/flyway.conf
     environment:
       - FLYWAY_URL=jdbc:postgresql://postgres:5432/westos_dev
@@ -47,23 +47,23 @@ services:
 
   frontend:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/Dockerfile.frontend
     container_name: westos-frontend
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_API_URL=http://backend:3001
     volumes:
-      - ../apps/frontend:/app/apps/frontend
-      - ../packages:/app/packages
+      - ../../apps/frontend:/app/apps/frontend
+      - ../../packages:/app/packages
     depends_on:
       - backend
 
   backend:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/Dockerfile.backend
     container_name: westos-backend
     ports:
@@ -81,8 +81,8 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - ADMIN_JWT_SECRET=your-admin-jwt-secret-change-in-production
     volumes:
-      - ../apps/backend:/app/apps/backend
-      - ../packages:/app/packages
+      - ../../apps/backend:/app/apps/backend
+      - ../../packages:/app/packages
     depends_on:
       postgres:
         condition: service_healthy

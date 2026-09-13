@@ -6,7 +6,7 @@ import { productsApi } from '@/lib/endpoints-shop';
 async function getFeaturedProducts() {
   try {
     const response = await productsApi.getProducts({ limit: 8, sort: 'createdAt', order: 'DESC' });
-    return response.data.data?.data || [];
+    return (response.data as any)?.data?.data || [];
   } catch (error) {
     console.error('Failed to fetch products:', error);
     return [];
@@ -16,7 +16,7 @@ async function getFeaturedProducts() {
 async function getCategories() {
   try {
     const response = await productsApi.getProducts({ limit: 50 });
-    const products = response.data.data?.data || [];
+    const products = (response.data as any)?.data?.data || [];
     
     // Group by category from products
     const categoryMap = new Map();
